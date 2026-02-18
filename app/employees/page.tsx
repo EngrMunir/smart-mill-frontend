@@ -1,6 +1,5 @@
 'use client';
 
-import MainLayout from '@/components/MainLayout';
 import { employees, salaryPayments } from '@/lib/sampleData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -67,7 +66,6 @@ export default function EmployeesPage() {
   };
 
   return (
-    <MainLayout>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
@@ -322,6 +320,5 @@ export default function EmployeesPage() {
           </DialogContent>
         </Dialog>
       </div>
-    </MainLayout>
   );
 }

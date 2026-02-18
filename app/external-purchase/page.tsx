@@ -1,6 +1,5 @@
 'use client';
 
-import MainLayout from '@/components/MainLayout';
 import { externalPurchases, updateRiceStock, updateBranStock, getStock } from '@/lib/sampleData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -97,8 +96,7 @@ export default function ExternalPurchasePage() {
   };
 
   return (
-    <MainLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">বাইরের কেনা</h1>
@@ -358,9 +356,10 @@ export default function ExternalPurchasePage() {
           </Table>
         </div>
       </div>
-    </MainLayout>
   );
 }
+
+
 
 
 

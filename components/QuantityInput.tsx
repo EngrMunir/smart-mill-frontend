@@ -15,6 +15,8 @@ interface QuantityInputProps {
   onBostaChange: (bosta: number) => void;
   onBostaSizeChange: (size: BostaSize) => void;
   className?: string;
+  showBostaSize?: boolean;
+  showKg?: boolean;
 }
 
 export function QuantityInput({
@@ -26,6 +28,8 @@ export function QuantityInput({
   onBostaChange,
   onBostaSizeChange,
   className,
+  showBostaSize = true,
+  showKg = true,
 }: QuantityInputProps) {
   const [kgInput, setKgInput] = useState(kg.toString());
   const [bostaInput, setBostaInput] = useState(bosta.toString());
@@ -63,51 +67,95 @@ export function QuantityInput({
   return (
     <div className={className}>
       {label && <Label className="mb-2 block">{label}</Label>}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="kg" className="text-xs text-muted-foreground">কেজি</Label>
-          <Input
-            id="kg"
-            type="number"
-            step="0.01"
-            value={kgInput}
-            onChange={(e) => handleKgChange(e.target.value)}
-            placeholder="0.00"
-          />
+      {showKg ? (
+        <>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="kg" className="text-xs text-muted-foreground">কেজি</Label>
+              <Input
+                id="kg"
+                type="number"
+                step="0.01"
+                value={kgInput}
+                onChange={(e) => handleKgChange(e.target.value)}
+                placeholder="0.00"
+              />
+            </div>
+            <div>
+              <Label htmlFor="bosta" className="text-xs text-muted-foreground">বস্তা</Label>
+              <Input
+                id="bosta"
+                type="number"
+                step="0.01"
+                value={bostaInput}
+                onChange={(e) => handleBostaChange(e.target.value)}
+                placeholder="0"
+              />
+            </div>
+          </div>
+          <div className="mt-2 flex items-center gap-2">
+            {showBostaSize && (
+              <>
+                <Label htmlFor="bosta-size" className="text-xs text-muted-foreground">বস্তার সাইজ:</Label>
+                <Select
+                  value={bostaSize.toString()}
+                  onValueChange={(value) => onBostaSizeChange(parseInt(value) as BostaSize)}
+                >
+                  <SelectTrigger id="bosta-size" className="h-8 w-20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="25">২৫ কেজি</SelectItem>
+                    <SelectItem value="50">৫০ কেজি</SelectItem>
+                  </SelectContent>
+                </Select>
+              </>
+            )}
+            <span className={`text-xs text-muted-foreground ${showBostaSize ? 'ml-auto' : ''}`}>
+              মোট: {totalKg.toFixed(2)} কেজি
+            </span>
+          </div>
+        </>
+      ) : (
+        <div className="flex items-end gap-4">
+          <div className="flex-1">
+            <Label htmlFor="bosta" className="text-xs text-muted-foreground">বস্তা</Label>
+            <Input
+              id="bosta"
+              type="number"
+              step="0.01"
+              value={bostaInput}
+              onChange={(e) => handleBostaChange(e.target.value)}
+              placeholder="0"
+            />
+          </div>
+          {showBostaSize && (
+            <div className="flex-1">
+              <Label htmlFor="bosta-size" className="text-xs text-muted-foreground">বস্তার সাইজ</Label>
+              <Select
+                value={bostaSize.toString()}
+                onValueChange={(value) => onBostaSizeChange(parseInt(value) as BostaSize)}
+              >
+                <SelectTrigger id="bosta-size" className="h-10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="25">২৫ কেজি</SelectItem>
+                  <SelectItem value="50">৫০ কেজি</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <span className="text-xs text-muted-foreground mb-2">
+            মোট: {totalKg.toFixed(2)} কেজি
+          </span>
         </div>
-        <div>
-          <Label htmlFor="bosta" className="text-xs text-muted-foreground">বস্তা</Label>
-          <Input
-            id="bosta"
-            type="number"
-            step="0.01"
-            value={bostaInput}
-            onChange={(e) => handleBostaChange(e.target.value)}
-            placeholder="0"
-          />
-        </div>
-      </div>
-      <div className="mt-2 flex items-center gap-2">
-        <Label htmlFor="bosta-size" className="text-xs text-muted-foreground">বস্তার সাইজ:</Label>
-        <Select
-          value={bostaSize.toString()}
-          onValueChange={(value) => onBostaSizeChange(parseInt(value) as BostaSize)}
-        >
-          <SelectTrigger id="bosta-size" className="h-8 w-20">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="25">২৫ কেজি</SelectItem>
-            <SelectItem value="50">৫০ কেজি</SelectItem>
-          </SelectContent>
-        </Select>
-        <span className="text-xs text-muted-foreground ml-auto">
-          মোট: {totalKg.toFixed(2)} কেজি
-        </span>
-      </div>
+      )}
     </div>
   );
 }
+
+
 
 
 

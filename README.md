@@ -1,22 +1,87 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Rice Mill Management System
 
-## Getting Started
+A complete admin dashboard for rice mill management built with Next.js 14, TypeScript, and Tailwind CSS.
 
-First, run the development server:
+## 🏭 Features
 
+- **Authentication System**: Login/Register with JWT tokens
+- **Dashboard**: Real-time summary cards and charts
+- **Farmers Management**: Add farmers and record paddy purchases
+- **Production Tracking**: Record paddy to rice/bran conversion
+- **Sales Management**: Rice and bran sales with cash/due options
+- **External Purchases**: Buy rice/bran from other mills
+- **Employee Management**: Staff management and salary payments
+- **Reports**: Various business reports and analytics
+- **Due Management**: Track farmer and customer dues
+- **Stock Management**: Real-time inventory tracking
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- Backend API running on port 3000
+
+### Installation
+
+1. Install dependencies:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Start the development server:
+```bash
+npm run dev
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+### Login Credentials
+
+- **Email**: smsirajulmonir@gmail.com
+- **Password**: *#R@dium1047*# (from Postman collection)
+
+## 🔧 API Integration
+
+The frontend is fully integrated with the backend API from the Postman collection. All data comes directly from the backend API - no mock data is used.
+
+### Environment Configuration
+
+Create a `.env.local` file in the root directory:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:3000
+```
+
+### API Integration Status
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Authentication | ✅ Complete | JWT tokens |
+| Dashboard | ✅ Complete | Real API data |
+| Farmers Management | ✅ Complete | CRUD operations |
+| Production | ⏳ Pending | Ready for integration |
+| Sales | ⏳ Pending | Ready for integration |
+| Reports | ⏳ Pending | Ready for integration |
+| Employees | ⏳ Pending | Ready for integration |
+
+## 📁 Project Structure
+
+```
+├── app/                    # Next.js app router pages
+│   ├── login/             # Authentication page
+│   ├── farmers/           # Farmers management
+│   ├── production/        # Production tracking
+│   ├── sales/             # Sales management
+│   └── ...
+├── components/            # Reusable UI components
+├── contexts/              # React contexts (Auth)
+├── lib/                   # Utility functions and API services
+│   ├── api.ts            # API service layer
+│   ├── types.ts          # TypeScript interfaces
+│   └── ...
+└── ...
+```
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 

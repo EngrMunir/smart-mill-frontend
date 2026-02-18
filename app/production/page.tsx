@@ -1,6 +1,5 @@
 'use client';
 
-import MainLayout from '@/components/MainLayout';
 import { productions, updatePaddyStock, updateRiceStock, updateBranStock, getStock } from '@/lib/sampleData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -101,8 +100,7 @@ export default function ProductionPage() {
   };
 
   return (
-    <MainLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">উৎপাদন</h1>
@@ -263,14 +261,14 @@ export default function ProductionPage() {
                     </div>
                     <div>
                       <h4 className="text-sm font-medium mb-2">চিকন ভুসি</h4>
-                      <QuantityInput
+                  <QuantityInput
                         kg={formData.chikonBranKg}
                         bosta={formData.chikonBranBosta}
                         bostaSize={formData.chikonBranBostaSize}
                         onKgChange={(kg) => setFormData({ ...formData, chikonBranKg: kg })}
                         onBostaChange={(bosta) => setFormData({ ...formData, chikonBranBosta: bosta })}
                         onBostaSizeChange={(size) => setFormData({ ...formData, chikonBranBostaSize: size })}
-                      />
+                  />
                     </div>
                   </div>
                 </div>
@@ -348,6 +346,5 @@ export default function ProductionPage() {
           </Table>
         </div>
       </div>
-    </MainLayout>
   );
 }

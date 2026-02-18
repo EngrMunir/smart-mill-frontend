@@ -1,7 +1,9 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import MainLayout from '@/components/MainLayout';
-import { farmers, paddyPurchases, updatePaddyStock, getStock } from '@/lib/sampleData';
+import { AuthGuard } from '@/components/AuthGuard';
+import { farmersAPI, paddyAPI, stockAPI } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,13 +26,18 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Plus, Edit, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BostaWeightInput } from '@/components/BostaWeightInput';
-import { PADDY_TYPES, PaddyType } from '@/lib/constants';
-import { PaddyBosta } from '@/lib/types';
-import { calculateTotalKg, normalizeStock } from '@/lib/stockUtils';
+import { calculateTotalKg } from '@/lib/stockUtils';
 
 export default function FarmersPage() {
+  const [farmers, setFarmers] = useState<any[]>([]);
+  const [paddyPurchases, setPaddyPurchases] = useState<any[]>([]);
+  const [currentStock, setCurrentStock] = useState<any>(null);
+  const [paddyTypes, setPaddyTypes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [showFarmerModal, setShowFarmerModal] = useState(false);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [editingFarmer, setEditingFarmer] = useState<any>(null);
@@ -42,62 +49,95 @@ export default function FarmersPage() {
   const [purchaseForm, setPurchaseForm] = useState({
     farmerId: '',
     farmerName: '',
-    paddyType: '২৮' as PaddyType,
+    paddyTypeId: '',
     customPaddyType: '',
-    bostas: [] as PaddyBosta[],
+    bostas: [] as any[],
     ratePerKg: '',
     paidAmount: '',
   });
-  const currentStock = getStock();
 
-  const handleFarmerSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const [farmersData, purchasesData, stockData, paddyTypesData] = await Promise.all([
+        farmersAPI.getAll(),
+        paddyAPI.getAllPaddyPurchases(),
+        stockAPI.getAllStock(),
+        paddyAPI.getAllPaddyTypes()
+      ]);
+      setFarmers(farmersData);
+      setPaddyPurchases(purchasesData);
+      setCurrentStock(stockData);
+      setPaddyTypes(paddyTypesData);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load data');
+      console.error('Data fetch error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFarmerSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Farmer data:', formData);
+    try {
+      if (editingFarmer) {
+        await farmersAPI.update(editingFarmer.id, formData);
+      } else {
+        await farmersAPI.create(formData);
+      }
+      await fetchData(); // Refresh data
     setShowFarmerModal(false);
     setFormData({ name: '', phone: '', address: '' });
     setEditingFarmer(null);
+    } catch (err) {
+      console.error('Farmer save error:', err);
+      alert('Failed to save farmer');
+    }
   };
 
-  const handlePurchaseSubmit = (e: React.FormEvent) => {
+  const handlePurchaseSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (purchaseForm.bostas.length === 0) {
       alert('অন্তত একটি বস্তা যোগ করুন');
       return;
     }
     
-    const totalKg = purchaseForm.bostas.reduce((sum, b) => sum + b.weightKg, 0);
-    const totalBosta = purchaseForm.bostas.length;
-    const rate = parseFloat(purchaseForm.ratePerKg);
-    const totalAmount = totalKg * rate;
-    const paidAmount = parseFloat(purchaseForm.paidAmount);
-    const dueAmount = totalAmount - paidAmount;
+    try {
+      const paddyTypeId = purchaseForm.paddyTypeId || paddyTypes[0]?.id;
 
-    const paddyTypeKey = purchaseForm.paddyType === 'অন্যান্য' 
-      ? purchaseForm.customPaddyType 
-      : purchaseForm.paddyType;
+      await paddyAPI.createPaddyPurchase({
+        farmerId: parseInt(purchaseForm.farmerId),
+        paddyTypeId: parseInt(paddyTypeId),
+        purchaseDate: new Date().toISOString().split('T')[0],
+        bostas: purchaseForm.bostas.map(b => ({
+          bostaNumber: b.bostaNo,
+          weight: b.weightKg
+        })),
+        pricePerKg: parseFloat(purchaseForm.ratePerKg),
+        notes: `Purchase from ${purchaseForm.farmerName}`
+      });
 
-    console.log('Purchase data:', {
-      ...purchaseForm,
-      totalKg,
-      totalBosta,
-      totalAmount,
-      dueAmount,
-    });
-
-    // Update stock - convert bostas to stock format
-    const stockQuantity = normalizeStock(totalKg, 50); // Use default bosta size for stock
-    updatePaddyStock(paddyTypeKey, stockQuantity, 'add');
+      await fetchData(); // Refresh data
 
     setShowPurchaseModal(false);
     setPurchaseForm({
       farmerId: '',
       farmerName: '',
-      paddyType: '২৮',
+        paddyTypeId: '',
       customPaddyType: '',
       bostas: [],
       ratePerKg: '',
       paidAmount: '',
     });
+    } catch (err) {
+      console.error('Purchase save error:', err);
+      alert('Failed to save purchase');
+    }
   };
 
   const calculateTotal = () => {
@@ -112,7 +152,36 @@ export default function FarmersPage() {
     return total - paid;
   };
 
+  if (loading) {
+    return (
+      <AuthGuard>
+        <MainLayout>
+          <div className="flex items-center justify-center min-h-96">
+            <div className="text-center">
+              <p className="text-gray-600">ডেটা লোড হচ্ছে...</p>
+            </div>
+          </div>
+        </MainLayout>
+      </AuthGuard>
+    );
+  }
+
+  if (error) {
+    return (
+      <AuthGuard>
+        <MainLayout>
+          <div className="flex items-center justify-center min-h-96">
+            <div className="text-center">
+              <p className="text-red-600">{error}</p>
+            </div>
+          </div>
+        </MainLayout>
+      </AuthGuard>
+    );
+  }
+
   return (
+    <AuthGuard>
     <MainLayout>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
@@ -146,20 +215,20 @@ export default function FarmersPage() {
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">বর্তমান ধানের স্টক (ধরন অনুযায়ী)</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {Object.entries(currentStock.paddy).map(([type, stock]) => {
-              const totalKg = calculateTotalKg(stock.kg, stock.bosta, stock.bostaSize);
+            {Object.entries(currentStock?.paddy || {}).map(([type, stock]: [string, any]) => {
+              const totalKg = calculateTotalKg(stock.kg, stock.totalBosta, stock.bostaSize || 50);
               if (totalKg === 0) return null;
               return (
                 <div key={type} className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <p className="text-sm font-medium text-blue-900">{type}</p>
                   <p className="text-sm text-blue-700">
-                    {stock.bosta} বস্তা + {stock.kg.toFixed(2)} কেজি
+                    {stock.totalBosta} বস্তা + {stock.kg.toFixed(2)} কেজি
                   </p>
                   <p className="text-xs text-blue-600 mt-1">মোট: {totalKg.toFixed(2)} কেজি</p>
                 </div>
               );
             })}
-            {Object.keys(currentStock.paddy).length === 0 && (
+            {Object.keys(currentStock?.paddy || {}).length === 0 && (
               <p className="text-gray-500">কোন ধানের স্টক নেই</p>
             )}
           </div>
@@ -237,26 +306,26 @@ export default function FarmersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paddyPurchases.map((purchase) => (
+              {paddyPurchases.map((purchase: any) => (
                 <TableRow key={purchase.id}>
-                  <TableCell>{purchase.date}</TableCell>
-                  <TableCell className="font-medium">{purchase.farmerName}</TableCell>
+                  <TableCell>{new Date(purchase.purchaseDate).toLocaleDateString('bn-BD')}</TableCell>
+                  <TableCell className="font-medium">{purchase.farmer?.name || 'Unknown'}</TableCell>
                   <TableCell>
                     <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
-                      {purchase.paddyType}
+                      {purchase.paddyType?.name || 'Unknown'}
                     </span>
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">
                       <div>{purchase.totalBosta} বস্তা</div>
                       <div className="text-xs text-gray-500">
-                        {purchase.bostas.slice(0, 3).map(b => `${b.weightKg}কেজি`).join(', ')}
+                        {purchase.bostas.slice(0, 3).map((b: any) => `${b.weight}কেজি`).join(', ')}
                         {purchase.bostas.length > 3 && '...'}
                       </div>
                     </div>
                   </TableCell>
                   <TableCell className="font-medium">{purchase.totalKg.toFixed(2)} কেজি</TableCell>
-                  <TableCell>৳{purchase.ratePerKg}</TableCell>
+                  <TableCell>৳{purchase.pricePerKg}</TableCell>
                   <TableCell className="font-medium">৳{purchase.totalAmount.toLocaleString()}</TableCell>
                   <TableCell className="text-green-600">৳{purchase.paidAmount.toLocaleString()}</TableCell>
                   <TableCell className="text-red-600">৳{purchase.dueAmount.toLocaleString()}</TableCell>
@@ -355,33 +424,21 @@ export default function FarmersPage() {
                 <div>
                   <Label htmlFor="paddyType">ধানের ধরন</Label>
                   <Select
-                    value={purchaseForm.paddyType}
-                    onValueChange={(value) => setPurchaseForm({ ...purchaseForm, paddyType: value as PaddyType, customPaddyType: '' })}
+                    value={purchaseForm.paddyTypeId}
+                    onValueChange={(value) => setPurchaseForm({ ...purchaseForm, paddyTypeId: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="ধানের ধরন নির্বাচন করুন" />
                     </SelectTrigger>
                     <SelectContent>
-                      {PADDY_TYPES.map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {type}
+                      {paddyTypes.map((type: any) => (
+                        <SelectItem key={type.id} value={type.id.toString()}>
+                          {type.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                {purchaseForm.paddyType === 'অন্যান্য' && (
-                  <div>
-                    <Label htmlFor="customPaddyType">কাস্টম ধানের ধরন</Label>
-                    <Input
-                      id="customPaddyType"
-                      required
-                      value={purchaseForm.customPaddyType}
-                      onChange={(e) => setPurchaseForm({ ...purchaseForm, customPaddyType: e.target.value })}
-                      placeholder="কাস্টম ধানের ধরন লিখুন"
-                    />
-                  </div>
-                )}
                 <BostaWeightInput
                   bostas={purchaseForm.bostas}
                   onBostasChange={(bostas) => setPurchaseForm({ ...purchaseForm, bostas })}
@@ -434,5 +491,6 @@ export default function FarmersPage() {
         </Dialog>
       </div>
     </MainLayout>
+    </AuthGuard>
   );
 }

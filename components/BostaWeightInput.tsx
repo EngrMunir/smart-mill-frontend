@@ -23,7 +23,7 @@ interface BostaWeightInputProps {
 export function BostaWeightInput({ bostas, onBostasChange }: BostaWeightInputProps) {
   const addBosta = () => {
     const newBostaNo = bostas.length > 0 ? Math.max(...bostas.map(b => b.bostaNo)) + 1 : 1;
-    onBostasChange([...bostas, { bostaNo: newBostaNo, weightKg: 0 }]);
+    onBostasChange([{ bostaNo: newBostaNo, weightKg: 0 }, ...bostas]);
   };
 
   const removeBosta = (index: number) => {
@@ -113,6 +113,8 @@ export function BostaWeightInput({ bostas, onBostasChange }: BostaWeightInputPro
     </div>
   );
 }
+
+
 
 
 

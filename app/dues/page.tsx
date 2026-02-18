@@ -47,7 +47,6 @@ export default function DuesPage() {
   };
 
   return (
-    <MainLayout>
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Due Management</h1>
@@ -208,6 +207,5 @@ export default function DuesPage() {
           </DialogContent>
         </Dialog>
       </div>
-    </MainLayout>
   );
 }

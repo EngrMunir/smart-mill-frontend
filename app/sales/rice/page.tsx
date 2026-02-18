@@ -1,6 +1,5 @@
 'use client';
 
-import MainLayout from '@/components/MainLayout';
 import { sales, updateRiceStock, getStock } from '@/lib/sampleData';
 import { RICE_TYPES, DEFAULT_BOSTA_SIZE, RiceType } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
@@ -25,8 +24,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Printer, FileText } from 'lucide-react';
 import { useState } from 'react';
-import { QuantityInput } from '@/components/QuantityInput';
-import { calculateTotalKg, normalizeStock, BostaSize } from '@/lib/stockUtils';
+import { calculateTotalKg as calcTotalKg, normalizeStock, BostaSize } from '@/lib/stockUtils';
 import { MILL_INFO } from '@/lib/constants';
 
 export default function RiceSalesPage() {
@@ -34,12 +32,12 @@ export default function RiceSalesPage() {
   const [showMemo, setShowMemo] = useState<any>(null);
   const [formData, setFormData] = useState({
     customerName: '',
-    riceType: 'Miniket' as RiceType,
+    riceType: 'মিনিকেট' as RiceType,
     customRiceType: '',
-    quantityKg: 0,
-    quantityBosta: 0,
-    bostaSize: DEFAULT_BOSTA_SIZE as BostaSize,
-    ratePerKg: '',
+    bosta25: 0, // Number of 25kg bags
+    bosta50: 0, // Number of 50kg bags
+    ratePerBosta25: '', // Price per 25kg bag (for rice)
+    ratePerBosta50: '', // Price per 50kg bag (for rice)
     saleType: 'cash' as 'cash' | 'due',
     paidAmount: '',
   });
@@ -49,9 +47,19 @@ export default function RiceSalesPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const totalKg = calculateTotalKg(formData.quantityKg, formData.quantityBosta, formData.bostaSize);
-    const rate = parseFloat(formData.ratePerKg);
-    const totalAmount = totalKg * rate;
+    // For RICE: Price per BOSTA (not per KG)
+    const totalKg25 = formData.bosta25 * 25;
+    const totalKg50 = formData.bosta50 * 50;
+    const totalKg = totalKg25 + totalKg50;
+    
+    const ratePerBosta25 = parseFloat(formData.ratePerBosta25) || 0;
+    const ratePerBosta50 = parseFloat(formData.ratePerBosta50) || 0;
+    
+    // Rice calculation: bosta count × price per bosta
+    const amount25 = formData.bosta25 * ratePerBosta25;
+    const amount50 = formData.bosta50 * ratePerBosta50;
+    const totalAmount = amount25 + amount50;
+    
     const paidAmount = formData.saleType === 'cash' ? totalAmount : parseFloat(formData.paidAmount);
     const dueAmount = totalAmount - paidAmount;
 
@@ -63,10 +71,15 @@ export default function RiceSalesPage() {
       riceType: formData.riceType,
       customRiceType: formData.riceType === 'অন্যান্য' ? formData.customRiceType : undefined,
       customerName: formData.customerName,
-      quantityKg: formData.quantityKg,
-      quantityBosta: formData.quantityBosta,
-      bostaSize: formData.bostaSize,
-      ratePerKg: rate,
+      bosta25: formData.bosta25,
+      bosta50: formData.bosta50,
+      ratePerBosta25,
+      ratePerBosta50,
+      totalKg25,
+      totalKg50,
+      totalKg,
+      amount25,
+      amount50,
       totalAmount,
       saleType: formData.saleType,
       paidAmount,
@@ -77,8 +90,16 @@ export default function RiceSalesPage() {
     console.log('Sale data:', newSale);
 
     // Update stock: reduce rice (type-wise)
-    const stockQty = normalizeStock(totalKg, formData.bostaSize);
-    updateRiceStock(riceTypeKey, stockQty, 'subtract');
+    // Deduct 25kg bags
+    if (formData.bosta25 > 0) {
+      const stockQty25 = normalizeStock(formData.bosta25 * 25, 25);
+      updateRiceStock(riceTypeKey, stockQty25, 'subtract');
+    }
+    // Deduct 50kg bags
+    if (formData.bosta50 > 0) {
+      const stockQty50 = normalizeStock(formData.bosta50 * 50, 50);
+      updateRiceStock(riceTypeKey, stockQty50, 'subtract');
+    }
 
     setShowMemo(newSale);
     setShowForm(false);
@@ -86,19 +107,26 @@ export default function RiceSalesPage() {
       customerName: '',
       riceType: 'মিনিকেট' as RiceType,
       customRiceType: '',
-      quantityKg: 0,
-      quantityBosta: 0,
-      bostaSize: DEFAULT_BOSTA_SIZE as BostaSize,
-      ratePerKg: '',
+      bosta25: 0,
+      bosta50: 0,
+      ratePerBosta25: '',
+      ratePerBosta50: '',
       saleType: 'cash',
       paidAmount: '',
     });
   };
 
   const calculateTotal = () => {
-    const totalKg = calculateTotalKg(formData.quantityKg, formData.quantityBosta, formData.bostaSize);
-    const rate = parseFloat(formData.ratePerKg) || 0;
-    return totalKg * rate;
+    // For RICE: bosta count × price per bosta
+    const ratePerBosta25 = parseFloat(formData.ratePerBosta25) || 0;
+    const ratePerBosta50 = parseFloat(formData.ratePerBosta50) || 0;
+    const amount25 = formData.bosta25 * ratePerBosta25;
+    const amount50 = formData.bosta50 * ratePerBosta50;
+    return amount25 + amount50;
+  };
+
+  const calculateTotalKg = () => {
+    return (formData.bosta25 * 25) + (formData.bosta50 * 50);
   };
 
   const calculateDue = () => {
@@ -109,7 +137,6 @@ export default function RiceSalesPage() {
   };
 
   return (
-    <MainLayout>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
@@ -127,7 +154,7 @@ export default function RiceSalesPage() {
           <h2 className="text-lg font-semibold text-gray-900 mb-4">বর্তমান চালের স্টক (ধরন অনুযায়ী)</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {Object.entries(currentStock.rice).map(([type, stock]) => {
-              const totalKg = calculateTotalKg(stock.kg, stock.bosta, stock.bostaSize);
+              const totalKg = calcTotalKg(stock.kg, stock.bosta, stock.bostaSize);
               if (totalKg === 0) return null;
               return (
                 <div key={type} className="bg-green-50 border border-green-200 rounded-lg p-4">
@@ -192,24 +219,72 @@ export default function RiceSalesPage() {
                     />
                   </div>
                 )}
-                <QuantityInput
-                  kg={formData.quantityKg}
-                  bosta={formData.quantityBosta}
-                  bostaSize={formData.bostaSize}
-                  onKgChange={(kg) => setFormData({ ...formData, quantityKg: kg })}
-                  onBostaChange={(bosta) => setFormData({ ...formData, quantityBosta: bosta })}
-                  onBostaSizeChange={(size) => setFormData({ ...formData, bostaSize: size })}
+                <div className="border rounded-lg p-4 space-y-4 bg-gray-50">
+                  <h4 className="font-semibold text-gray-900">বস্তা বিক্রি (শুধুমাত্র বস্তা হিসেবে)</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="bosta25">২৫ কেজি বস্তা সংখ্যা</Label>
+                      <Input
+                        id="bosta25"
+                        type="number"
+                        min="0"
+                        value={formData.bosta25}
+                        onChange={(e) => setFormData({ ...formData, bosta25: parseInt(e.target.value) || 0 })}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="rate25">২৫ কেজি প্রতি বস্তার দাম (৳)</Label>
+                      <Input
+                        id="rate25"
+                        type="number"
+                        step="0.01"
+                        value={formData.ratePerBosta25}
+                        onChange={(e) => setFormData({ ...formData, ratePerBosta25: e.target.value })}
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="bosta50">৫০ কেজি বস্তা সংখ্যা</Label>
+                      <Input
+                        id="bosta50"
+                        type="number"
+                        min="0"
+                        value={formData.bosta50}
+                        onChange={(e) => setFormData({ ...formData, bosta50: parseInt(e.target.value) || 0 })}
+                        placeholder="0"
                 />
+                    </div>
                 <div>
-                  <Label htmlFor="rate">দর প্রতি কেজি (৳)</Label>
+                      <Label htmlFor="rate50">৫০ কেজি প্রতি বস্তার দাম (৳)</Label>
                   <Input
-                    id="rate"
+                        id="rate50"
                     type="number"
-                    required
                     step="0.01"
-                    value={formData.ratePerKg}
-                    onChange={(e) => setFormData({ ...formData, ratePerKg: e.target.value })}
-                  />
+                        value={formData.ratePerBosta50}
+                        onChange={(e) => setFormData({ ...formData, ratePerBosta50: e.target.value })}
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+                  <div className="bg-white p-3 rounded border space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">২৫ কেজি মোট টাকা:</span>
+                      <span className="font-semibold">৳{(formData.bosta25 * (parseFloat(formData.ratePerBosta25) || 0)).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">৫০ কেজি মোট টাকা:</span>
+                      <span className="font-semibold">৳{(formData.bosta50 * (parseFloat(formData.ratePerBosta50) || 0)).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-sm border-t pt-1">
+                      <span className="text-gray-600">মোট বস্তা:</span>
+                      <span className="font-semibold">{formData.bosta25 + formData.bosta50} টি</span>
+                    </div>
+                    <div className="flex justify-between text-sm text-gray-500 italic">
+                      <span>মোট কেজি (তথ্য):</span>
+                      <span>{calculateTotalKg()} কেজি</span>
+                    </div>
+                  </div>
                 </div>
                 <div>
                   <Label htmlFor="saleType">বিক্রির ধরন</Label>
@@ -250,6 +325,10 @@ export default function RiceSalesPage() {
                       <span className="font-semibold text-red-600">৳{calculateDue().toLocaleString()}</span>
                     </div>
                   )}
+                  <div className="flex justify-between text-sm text-gray-500 italic border-t pt-2">
+                    <span>মোট কেজি (তথ্য):</span>
+                    <span>{calculateTotalKg()} কেজি</span>
+                  </div>
                 </div>
               </div>
               <DialogFooter>
@@ -308,22 +387,40 @@ export default function RiceSalesPage() {
                       <span className="font-medium">{showMemo.riceType}</span>
                     </div>
                   )}
+                  {showMemo.bosta25 > 0 && (
+                    <>
+                      <div className="flex justify-between">
+                        <span>২৫ কেজি বস্তা সংখ্যা:</span>
+                        <span className="font-medium">{showMemo.bosta25} টি</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>২৫ কেজি প্রতি বস্তার দাম:</span>
+                        <span className="font-medium">৳{showMemo.ratePerBosta25}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>২৫ কেজি মোট টাকা:</span>
+                        <span className="font-medium">৳{showMemo.amount25?.toLocaleString() || ((showMemo.bosta25 * (showMemo.ratePerBosta25 || 0)).toLocaleString())}</span>
+                      </div>
+                    </>
+                  )}
+                  {showMemo.bosta50 > 0 && (
+                    <>
+                      <div className="flex justify-between">
+                        <span>৫০ কেজি বস্তা সংখ্যা:</span>
+                        <span className="font-medium">{showMemo.bosta50} টি</span>
+                      </div>
                   <div className="flex justify-between">
-                    <span>পরিমাণ:</span>
-                    <span className="font-medium">
-                      {showMemo.quantityBosta > 0 && `${showMemo.quantityBosta} বস্তা (${showMemo.bostaSize}কেজি) + `}
-                      {showMemo.quantityKg > 0 && `${showMemo.quantityKg} কেজি`}
-                      {showMemo.quantityBosta === 0 && showMemo.quantityKg === 0 && '০ কেজি'}
-                      {' '}
-                      (মোট: {calculateTotalKg(showMemo.quantityKg, showMemo.quantityBosta, showMemo.bostaSize).toFixed(2)} কেজি)
-                    </span>
+                        <span>৫০ কেজি প্রতি বস্তার দাম:</span>
+                        <span className="font-medium">৳{showMemo.ratePerBosta50}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>দর:</span>
-                    <span className="font-medium">৳{showMemo.ratePerKg}/কেজি</span>
+                        <span>৫০ কেজি মোট টাকা:</span>
+                        <span className="font-medium">৳{showMemo.amount50?.toLocaleString() || ((showMemo.bosta50 * (showMemo.ratePerBosta50 || 0)).toLocaleString())}</span>
                   </div>
+                    </>
+                  )}
                   <div className="flex justify-between font-bold text-lg border-t pt-2">
-                    <span>মোট টাকা:</span>
+                    <span>সর্বমোট টাকা:</span>
                     <span>৳{showMemo.totalAmount.toLocaleString()}</span>
                   </div>
                   {showMemo.saleType === 'due' && (
@@ -358,8 +455,8 @@ export default function RiceSalesPage() {
                 <TableHead>তারিখ</TableHead>
                 <TableHead>গ্রাহক</TableHead>
                 <TableHead>চালের ধরন</TableHead>
-                <TableHead>পরিমাণ</TableHead>
-                <TableHead>দর/কেজি</TableHead>
+                <TableHead>বস্তা (২৫/৫০)</TableHead>
+                <TableHead>মোট কেজি</TableHead>
                 <TableHead>মোট টাকা</TableHead>
                 <TableHead>ধরন</TableHead>
                 <TableHead className="text-right">কর্ম</TableHead>
@@ -367,7 +464,10 @@ export default function RiceSalesPage() {
             </TableHeader>
             <TableBody>
               {riceSales.map((sale) => {
-                const totalKg = calculateTotalKg(sale.quantityKg, sale.quantityBosta, sale.bostaSize);
+                const bosta25 = sale.bosta25 || 0;
+                const bosta50 = sale.bosta50 || 0;
+                const totalBosta = bosta25 + bosta50;
+                const totalKg = sale.totalKg || ((bosta25 * 25) + (bosta50 * 50));
                 return (
                   <TableRow key={sale.id}>
                     <TableCell>{sale.date}</TableCell>
@@ -380,11 +480,12 @@ export default function RiceSalesPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      {sale.quantityBosta > 0 && `${sale.quantityBosta} বস্তা (${sale.bostaSize}কেজি) + `}
-                      {sale.quantityKg > 0 && `${sale.quantityKg} কেজি`}
-                      <span className="text-muted-foreground ml-1">({totalKg.toFixed(2)} কেজি)</span>
+                      {bosta25 > 0 && <span className="text-sm">{bosta25}×২৫</span>}
+                      {bosta25 > 0 && bosta50 > 0 && <span className="text-sm mx-1">+</span>}
+                      {bosta50 > 0 && <span className="text-sm">{bosta50}×৫০</span>}
+                      <span className="text-xs text-gray-500 ml-1">({totalBosta} টি)</span>
                     </TableCell>
-                    <TableCell>৳{sale.ratePerKg}</TableCell>
+                    <TableCell className="font-medium">{totalKg} কেজি</TableCell>
                     <TableCell className="font-medium">৳{sale.totalAmount.toLocaleString()}</TableCell>
                     <TableCell>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -410,6 +511,5 @@ export default function RiceSalesPage() {
           </Table>
         </div>
       </div>
-    </MainLayout>
   );
 }

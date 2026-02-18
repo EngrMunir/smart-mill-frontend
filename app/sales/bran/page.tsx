@@ -1,6 +1,5 @@
 'use client';
 
-import MainLayout from '@/components/MainLayout';
 import { sales, updateBranStock, getStock } from '@/lib/sampleData';
 import { DEFAULT_BOSTA_SIZE, BRAN_TYPES, BranType } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
@@ -25,8 +24,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Printer, FileText } from 'lucide-react';
 import { useState } from 'react';
-import { QuantityInput } from '@/components/QuantityInput';
-import { calculateTotalKg, normalizeStock, BostaSize } from '@/lib/stockUtils';
+import { calculateTotalKg as calcTotalKg, normalizeStock, BostaSize } from '@/lib/stockUtils';
 import { MILL_INFO } from '@/lib/constants';
 
 export default function BranSalesPage() {
@@ -35,10 +33,10 @@ export default function BranSalesPage() {
   const [formData, setFormData] = useState({
     customerName: '',
     branType: 'মোটা ভুসি' as BranType,
-    quantityKg: 0,
-    quantityBosta: 0,
-    bostaSize: DEFAULT_BOSTA_SIZE as BostaSize,
-    ratePerKg: '',
+    bosta25: 0, // Number of 25kg bags
+    bosta50: 0, // Number of 50kg bags
+    ratePerKg25: '', // Price per KG for 25kg bags
+    ratePerKg50: '', // Price per KG for 50kg bags
     saleType: 'cash' as 'cash' | 'due',
     paidAmount: '',
   });
@@ -48,9 +46,18 @@ export default function BranSalesPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const totalKg = calculateTotalKg(formData.quantityKg, formData.quantityBosta, formData.bostaSize);
-    const rate = parseFloat(formData.ratePerKg);
-    const totalAmount = totalKg * rate;
+    // Calculate according to formula
+    const totalKg25 = formData.bosta25 * 25;
+    const totalKg50 = formData.bosta50 * 50;
+    const totalKg = totalKg25 + totalKg50;
+    
+    const ratePerKg25 = parseFloat(formData.ratePerKg25) || 0;
+    const ratePerKg50 = parseFloat(formData.ratePerKg50) || 0;
+    
+    const amount25 = totalKg25 * ratePerKg25;
+    const amount50 = totalKg50 * ratePerKg50;
+    const totalAmount = amount25 + amount50;
+    
     const paidAmount = formData.saleType === 'cash' ? totalAmount : parseFloat(formData.paidAmount);
     const dueAmount = totalAmount - paidAmount;
 
@@ -59,10 +66,15 @@ export default function BranSalesPage() {
       type: 'bran' as const,
       branType: formData.branType,
       customerName: formData.customerName,
-      quantityKg: formData.quantityKg,
-      quantityBosta: formData.quantityBosta,
-      bostaSize: formData.bostaSize,
-      ratePerKg: rate,
+      bosta25: formData.bosta25,
+      bosta50: formData.bosta50,
+      ratePerKg25,
+      ratePerKg50,
+      totalKg25,
+      totalKg50,
+      totalKg,
+      amount25,
+      amount50,
       totalAmount,
       saleType: formData.saleType,
       paidAmount,
@@ -73,27 +85,43 @@ export default function BranSalesPage() {
     console.log('Sale data:', newSale);
 
     // Update stock: reduce bran (type-wise)
-    const stockQty = normalizeStock(totalKg, formData.bostaSize);
-    updateBranStock(formData.branType, stockQty, 'subtract');
+    // Deduct 25kg bags
+    if (formData.bosta25 > 0) {
+      const stockQty25 = normalizeStock(formData.bosta25 * 25, 25);
+      updateBranStock(formData.branType, stockQty25, 'subtract');
+    }
+    // Deduct 50kg bags
+    if (formData.bosta50 > 0) {
+      const stockQty50 = normalizeStock(formData.bosta50 * 50, 50);
+      updateBranStock(formData.branType, stockQty50, 'subtract');
+    }
 
     setShowMemo(newSale);
     setShowForm(false);
     setFormData({
       customerName: '',
       branType: 'মোটা ভুসি',
-      quantityKg: 0,
-      quantityBosta: 0,
-      bostaSize: DEFAULT_BOSTA_SIZE as BostaSize,
-      ratePerKg: '',
+      bosta25: 0,
+      bosta50: 0,
+      ratePerKg25: '',
+      ratePerKg50: '',
       saleType: 'cash',
       paidAmount: '',
     });
   };
 
   const calculateTotal = () => {
-    const totalKg = calculateTotalKg(formData.quantityKg, formData.quantityBosta, formData.bostaSize);
-    const rate = parseFloat(formData.ratePerKg) || 0;
-    return totalKg * rate;
+    const totalKg25 = formData.bosta25 * 25;
+    const totalKg50 = formData.bosta50 * 50;
+    const ratePerKg25 = parseFloat(formData.ratePerKg25) || 0;
+    const ratePerKg50 = parseFloat(formData.ratePerKg50) || 0;
+    const amount25 = totalKg25 * ratePerKg25;
+    const amount50 = totalKg50 * ratePerKg50;
+    return amount25 + amount50;
+  };
+
+  const calculateTotalKg = () => {
+    return (formData.bosta25 * 25) + (formData.bosta50 * 50);
   };
 
   const calculateDue = () => {
@@ -104,8 +132,7 @@ export default function BranSalesPage() {
   };
 
   return (
-    <MainLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">ভুসি বিক্রি</h1>
@@ -122,7 +149,7 @@ export default function BranSalesPage() {
           <h2 className="text-lg font-semibold text-gray-900 mb-4">বর্তমান ভুসির স্টক (ধরন অনুযায়ী)</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {Object.entries(currentStock.bran).map(([type, stock]) => {
-              const totalKg = calculateTotalKg(stock.kg, stock.bosta, stock.bostaSize);
+              const totalKg = calcTotalKg(stock.kg, stock.bosta, stock.bostaSize);
               if (totalKg === 0) return null;
               return (
                 <div key={type} className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
@@ -178,24 +205,72 @@ export default function BranSalesPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <QuantityInput
-                  kg={formData.quantityKg}
-                  bosta={formData.quantityBosta}
-                  bostaSize={formData.bostaSize}
-                  onKgChange={(kg) => setFormData({ ...formData, quantityKg: kg })}
-                  onBostaChange={(bosta) => setFormData({ ...formData, quantityBosta: bosta })}
-                  onBostaSizeChange={(size) => setFormData({ ...formData, bostaSize: size })}
-                />
-                <div>
-                  <Label htmlFor="rate">দর প্রতি কেজি (৳)</Label>
+                <div className="border rounded-lg p-4 space-y-4 bg-gray-50">
+                  <h4 className="font-semibold text-gray-900">বস্তা বিক্রি (শুধুমাত্র বস্তা হিসেবে)</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="bosta25">২৫ কেজি বস্তা সংখ্যা</Label>
+                      <Input
+                        id="bosta25"
+                        type="number"
+                        min="0"
+                        value={formData.bosta25}
+                        onChange={(e) => setFormData({ ...formData, bosta25: parseInt(e.target.value) || 0 })}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="rate25">২৫ কেজি প্রতি কেজির দাম (৳)</Label>
+                      <Input
+                        id="rate25"
+                        type="number"
+                        step="0.01"
+                        value={formData.ratePerKg25}
+                        onChange={(e) => setFormData({ ...formData, ratePerKg25: e.target.value })}
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="bosta50">৫০ কেজি বস্তা সংখ্যা</Label>
+                      <Input
+                        id="bosta50"
+                        type="number"
+                        min="0"
+                        value={formData.bosta50}
+                        onChange={(e) => setFormData({ ...formData, bosta50: parseInt(e.target.value) || 0 })}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="rate50">৫০ কেজি প্রতি কেজির দাম (৳)</Label>
                   <Input
-                    id="rate"
+                        id="rate50"
                     type="number"
-                    required
                     step="0.01"
-                    value={formData.ratePerKg}
-                    onChange={(e) => setFormData({ ...formData, ratePerKg: e.target.value })}
+                        value={formData.ratePerKg50}
+                        onChange={(e) => setFormData({ ...formData, ratePerKg50: e.target.value })}
+                        placeholder="0.00"
                   />
+                    </div>
+                  </div>
+                  <div className="bg-white p-3 rounded border space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">২৫ কেজি মোট কেজি:</span>
+                      <span className="font-semibold">{formData.bosta25 * 25} কেজি</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">৫০ কেজি মোট কেজি:</span>
+                      <span className="font-semibold">{formData.bosta50 * 50} কেজি</span>
+                    </div>
+                    <div className="flex justify-between text-sm border-t pt-1">
+                      <span className="text-gray-600">মোট কেজি:</span>
+                      <span className="font-semibold">{calculateTotalKg()} কেজি</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">মোট বস্তা:</span>
+                      <span className="font-semibold">{formData.bosta25 + formData.bosta50} টি</span>
+                    </div>
+                  </div>
                 </div>
                 <div>
                   <Label htmlFor="saleType">বিক্রির ধরন</Label>
@@ -226,6 +301,10 @@ export default function BranSalesPage() {
                   </div>
                 )}
                 <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">মোট কেজি:</span>
+                    <span className="font-semibold">{calculateTotalKg()} কেজি</span>
+                  </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">মোট টাকা:</span>
                     <span className="font-semibold">৳{calculateTotal().toLocaleString()}</span>
@@ -294,21 +373,40 @@ export default function BranSalesPage() {
                       <span className="font-medium">{showMemo.branType}</span>
                     </div>
                   )}
-                  <div className="flex justify-between">
-                    <span>পরিমাণ:</span>
-                    <span className="font-medium">
-                      {showMemo.quantityBosta > 0 && `${showMemo.quantityBosta} বস্তা (${showMemo.bostaSize}কেজি) + `}
-                      {showMemo.quantityKg > 0 && `${showMemo.quantityKg} কেজি`}
-                      {' '}
-                      (মোট: {calculateTotalKg(showMemo.quantityKg, showMemo.quantityBosta, showMemo.bostaSize).toFixed(2)} কেজি)
-                    </span>
+                  {showMemo.bosta25 > 0 && (
+                    <>
+                      <div className="flex justify-between">
+                        <span>২৫ কেজি বস্তা সংখ্যা:</span>
+                        <span className="font-medium">{showMemo.bosta25} টি</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>২৫ কেজি প্রতি কেজির দাম:</span>
+                        <span className="font-medium">৳{showMemo.ratePerKg25}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>২৫ কেজি মোট টাকা:</span>
+                        <span className="font-medium">৳{showMemo.amount25?.toLocaleString() || ((showMemo.bosta25 * 25 * showMemo.ratePerKg25).toLocaleString())}</span>
+                      </div>
+                    </>
+                  )}
+                  {showMemo.bosta50 > 0 && (
+                    <>
+                      <div className="flex justify-between">
+                        <span>৫০ কেজি বস্তা সংখ্যা:</span>
+                        <span className="font-medium">{showMemo.bosta50} টি</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>দর:</span>
-                    <span className="font-medium">৳{showMemo.ratePerKg}/কেজি</span>
+                        <span>৫০ কেজি প্রতি কেজির দাম:</span>
+                        <span className="font-medium">৳{showMemo.ratePerKg50}</span>
                   </div>
+                  <div className="flex justify-between">
+                        <span>৫০ কেজি মোট টাকা:</span>
+                        <span className="font-medium">৳{showMemo.amount50?.toLocaleString() || ((showMemo.bosta50 * 50 * showMemo.ratePerKg50).toLocaleString())}</span>
+                  </div>
+                    </>
+                  )}
                   <div className="flex justify-between font-bold text-lg border-t pt-2">
-                    <span>মোট টাকা:</span>
+                    <span>সর্বমোট টাকা:</span>
                     <span>৳{showMemo.totalAmount.toLocaleString()}</span>
                   </div>
                   {showMemo.saleType === 'due' && (
@@ -352,7 +450,10 @@ export default function BranSalesPage() {
             </TableHeader>
             <TableBody>
               {branSales.map((sale) => {
-                const totalKg = calculateTotalKg(sale.quantityKg, sale.quantityBosta, sale.bostaSize);
+                const bosta25 = sale.bosta25 || 0;
+                const bosta50 = sale.bosta50 || 0;
+                const totalBosta = bosta25 + bosta50;
+                const totalKg = sale.totalKg || ((bosta25 * 25) + (bosta50 * 50));
                 return (
                   <TableRow key={sale.id}>
                     <TableCell>{sale.date}</TableCell>
@@ -365,11 +466,12 @@ export default function BranSalesPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      {sale.quantityBosta > 0 && `${sale.quantityBosta} বস্তা (${sale.bostaSize}কেজি) + `}
-                      {sale.quantityKg > 0 && `${sale.quantityKg} কেজি`}
-                      <span className="text-muted-foreground ml-1">({totalKg.toFixed(2)} কেজি)</span>
+                      {bosta25 > 0 && <span className="text-sm">{bosta25}×২৫</span>}
+                      {bosta25 > 0 && bosta50 > 0 && <span className="text-sm mx-1">+</span>}
+                      {bosta50 > 0 && <span className="text-sm">{bosta50}×৫০</span>}
+                      <span className="text-xs text-gray-500 ml-1">({totalBosta} টি)</span>
                     </TableCell>
-                    <TableCell>৳{sale.ratePerKg}</TableCell>
+                    <TableCell className="font-medium">{totalKg} কেজি</TableCell>
                     <TableCell className="font-medium">৳{sale.totalAmount.toLocaleString()}</TableCell>
                     <TableCell>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -395,6 +497,5 @@ export default function BranSalesPage() {
           </Table>
         </div>
       </div>
-    </MainLayout>
   );
 }

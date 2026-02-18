@@ -1,6 +1,5 @@
 'use client';
 
-import MainLayout from '@/components/MainLayout';
 import { sales, productions, paddyPurchases, salaryPayments } from '@/lib/sampleData';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -42,13 +41,12 @@ export default function ReportsPage() {
     date: p.date,
     paddyType: p.paddyType,
     riceType: p.riceType,
-    paddy: calculateTotalKg(p.paddyKg, p.paddyBosta, 50),
-    rice: calculateTotalKg(p.riceKg, p.riceBosta, p.riceBostaSize),
-    bran: calculateTotalKg(p.branKg, p.branBosta, p.branBostaSize),
+    paddy: p.paddyKg,
+    rice: p.riceKg,
+    bran: p.motaBranKg + p.chikonBranKg,
   }));
 
   return (
-    <MainLayout>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
@@ -89,18 +87,18 @@ export default function ReportsPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-white rounded-lg shadow p-6">
                 <p className="text-sm text-gray-600 mb-1">Total Sales</p>
-                <p className="text-2xl font-bold text-gray-900">₹{totalSales.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-gray-900">৳{totalSales.toLocaleString()}</p>
               </div>
               <div className="bg-white rounded-lg shadow p-6">
                 <p className="text-sm text-gray-600 mb-1">Rice Sales</p>
                 <p className="text-2xl font-bold text-green-600">
-                  ₹{sales.filter(s => s.type === 'rice').reduce((sum, s) => sum + s.totalAmount, 0).toLocaleString()}
+                  ৳{sales.filter(s => s.type === 'rice').reduce((sum, s) => sum + s.totalAmount, 0).toLocaleString()}
                 </p>
               </div>
               <div className="bg-white rounded-lg shadow p-6">
                 <p className="text-sm text-gray-600 mb-1">Bran Sales</p>
                 <p className="text-2xl font-bold text-yellow-600">
-                  ₹{sales.filter(s => s.type === 'bran').reduce((sum, s) => sum + s.totalAmount, 0).toLocaleString()}
+                  ৳{sales.filter(s => s.type === 'bran').reduce((sum, s) => sum + s.totalAmount, 0).toLocaleString()}
                 </p>
               </div>
             </div>
@@ -112,7 +110,7 @@ export default function ReportsPage() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="month" />
                   <YAxis />
-                  <Tooltip formatter={(value: number | undefined) => `₹${(value || 0).toLocaleString()}`} />
+                  <Tooltip formatter={(value: number | undefined) => `৳${(value || 0).toLocaleString()}`} />
                   <Legend />
                   <Bar dataKey="rice" fill="#10b981" name="Rice Sales" />
                   <Bar dataKey="bran" fill="#f59e0b" name="Bran Sales" />
@@ -127,15 +125,13 @@ export default function ReportsPage() {
                 {['Miniket', 'Nazirshail', 'Katari', 'Basmati', 'Atap', 'Boiled (Siddho)', 'Polao Rice'].map((riceType) => {
                   const typeSales = sales.filter(s => s.type === 'rice' && s.riceType === riceType);
                   const totalAmount = typeSales.reduce((sum, s) => sum + s.totalAmount, 0);
-                  const totalKg = typeSales.reduce((sum, s) => {
-                    return sum + calculateTotalKg(s.quantityKg, s.quantityBosta, s.bostaSize);
-                  }, 0);
+                  const totalKg = typeSales.reduce((sum, s) => sum + (s.totalKg || 0), 0);
                   if (totalAmount === 0) return null;
                   return (
                     <div key={riceType} className="bg-green-50 border border-green-200 rounded-lg p-4">
                       <p className="text-sm font-medium text-green-900">{riceType}</p>
-                      <p className="text-lg font-bold text-green-700 mt-1">₹{totalAmount.toLocaleString()}</p>
-                      <p className="text-xs text-green-600 mt-1">{totalKg.toFixed(2)} KG</p>
+                      <p className="text-lg font-bold text-green-700 mt-1">৳{totalAmount.toLocaleString()}</p>
+                      <p className="text-xs text-green-600 mt-1">{totalKg.toFixed(2)} কেজি</p>
                     </div>
                   );
                 })}
@@ -159,7 +155,6 @@ export default function ReportsPage() {
                 </TableHeader>
                 <TableBody>
                   {sales.map((sale) => {
-                    const totalKg = calculateTotalKg(sale.quantityKg, sale.quantityBosta, sale.bostaSize);
                     return (
                       <TableRow key={sale.id}>
                         <TableCell>{sale.date}</TableCell>
@@ -167,7 +162,7 @@ export default function ReportsPage() {
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                             sale.type === 'rice' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                           }`}>
-                            {sale.type === 'rice' ? 'Rice' : 'Bran'}
+                            {sale.type === 'rice' ? 'চাল' : 'ভুসি'}
                           </span>
                         </TableCell>
                         <TableCell>
@@ -176,14 +171,19 @@ export default function ReportsPage() {
                               {sale.riceType}
                             </span>
                           )}
+                          {sale.branType && (
+                            <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs font-medium">
+                              {sale.branType}
+                            </span>
+                          )}
                         </TableCell>
                         <TableCell className="font-medium">{sale.customerName}</TableCell>
                         <TableCell>
-                          {sale.quantityBosta > 0 && `${sale.quantityBosta} Bosta (${sale.bostaSize}kg) + `}
-                          {sale.quantityKg > 0 && `${sale.quantityKg} KG`}
-                          <span className="text-muted-foreground ml-1">({totalKg.toFixed(2)} KG)</span>
+                          {sale.bosta25 > 0 && `${sale.bosta25} (২৫কেজি) `}
+                          {sale.bosta50 > 0 && `${sale.bosta50} (৫০কেজি) `}
+                          <span className="text-muted-foreground ml-1">({sale.totalKg?.toFixed(2) || 0} কেজি)</span>
                         </TableCell>
-                        <TableCell className="font-medium">₹{sale.totalAmount.toLocaleString()}</TableCell>
+                        <TableCell className="font-medium">৳{sale.totalAmount.toLocaleString()}</TableCell>
                       </TableRow>
                     );
                   })}
@@ -200,25 +200,19 @@ export default function ReportsPage() {
               <div className="bg-white rounded-lg shadow p-6">
                 <p className="text-sm text-gray-600 mb-1">Total Paddy Processed</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {productions.reduce((sum, p) => {
-                    return sum + calculateTotalKg(p.paddyKg, p.paddyBosta, 50);
-                  }, 0).toLocaleString()} kg
+                  {productions.reduce((sum, p) => sum + p.paddyKg, 0).toLocaleString()} কেজি
                 </p>
               </div>
               <div className="bg-white rounded-lg shadow p-6">
                 <p className="text-sm text-gray-600 mb-1">Total Rice Produced</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {productions.reduce((sum, p) => {
-                    return sum + calculateTotalKg(p.riceKg, p.riceBosta, p.riceBostaSize);
-                  }, 0).toLocaleString()} kg
+                  {productions.reduce((sum, p) => sum + p.riceKg, 0).toLocaleString()} কেজি
                 </p>
               </div>
               <div className="bg-white rounded-lg shadow p-6">
                 <p className="text-sm text-gray-600 mb-1">Total Bran Produced</p>
                 <p className="text-2xl font-bold text-yellow-600">
-                  {productions.reduce((sum, p) => {
-                    return sum + calculateTotalKg(p.branKg, p.branBosta, p.branBostaSize);
-                  }, 0).toLocaleString()} kg
+                  {productions.reduce((sum, p) => sum + p.motaBranKg + p.chikonBranKg, 0).toLocaleString()} কেজি
                 </p>
               </div>
             </div>
@@ -257,9 +251,9 @@ export default function ReportsPage() {
                 </TableHeader>
                 <TableBody>
                   {productions.map((prod) => {
-                    const paddyTotalKg = calculateTotalKg(prod.paddyKg, prod.paddyBosta, 50);
-                    const riceTotalKg = calculateTotalKg(prod.riceKg, prod.riceBosta, prod.riceBostaSize);
-                    const branTotalKg = calculateTotalKg(prod.branKg, prod.branBosta, prod.branBostaSize);
+                    const paddyTotalKg = prod.paddyKg;
+                    const riceTotalKg = prod.riceKg;
+                    const branTotalKg = prod.motaBranKg + prod.chikonBranKg;
                     const riceYield = ((riceTotalKg / paddyTotalKg) * 100).toFixed(2);
                     return (
                       <TableRow key={prod.id}>
@@ -275,19 +269,19 @@ export default function ReportsPage() {
                           </span>
                         </TableCell>
                         <TableCell>
-                          {prod.paddyBosta > 0 && `${prod.paddyBosta} Bosta + `}
-                          {prod.paddyKg > 0 && `${prod.paddyKg} KG`}
-                          <span className="text-muted-foreground ml-1">({paddyTotalKg.toFixed(2)} KG)</span>
+                          {prod.paddyBosta > 0 && `${prod.paddyBosta} বস্তা + `}
+                          {prod.paddyKg > 0 && `${prod.paddyKg} কেজি`}
+                          <span className="text-muted-foreground ml-1">({paddyTotalKg.toFixed(2)} কেজি)</span>
                         </TableCell>
                         <TableCell className="text-green-600 font-medium">
-                          {prod.riceBosta > 0 && `${prod.riceBosta} Bosta (${prod.riceBostaSize}kg) + `}
-                          {prod.riceKg > 0 && `${prod.riceKg} KG`}
-                          <span className="text-muted-foreground ml-1">({riceTotalKg.toFixed(2)} KG)</span>
+                          {prod.riceBosta > 0 && `${prod.riceBosta} বস্তা (${prod.riceBostaSize}কেজি) + `}
+                          {prod.riceKg > 0 && `${prod.riceKg} কেজি`}
+                          <span className="text-muted-foreground ml-1">({riceTotalKg.toFixed(2)} কেজি)</span>
                         </TableCell>
                         <TableCell className="text-yellow-600 font-medium">
-                          {prod.branBosta > 0 && `${prod.branBosta} Bosta (${prod.branBostaSize}kg) + `}
-                          {prod.branKg > 0 && `${prod.branKg} KG`}
-                          <span className="text-muted-foreground ml-1">({branTotalKg.toFixed(2)} KG)</span>
+                          {prod.motaBranKg > 0 && `${prod.motaBranKg} কেজি মোটা ভুসি `}
+                          {prod.chikonBranKg > 0 && `${prod.chikonBranKg} কেজি চিকন ভুসি`}
+                          <span className="text-muted-foreground ml-1">({branTotalKg.toFixed(2)} কেজি)</span>
                         </TableCell>
                         <TableCell>{riceYield}%</TableCell>
                       </TableRow>
@@ -305,20 +299,20 @@ export default function ReportsPage() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="bg-white rounded-lg shadow p-6">
                 <p className="text-sm text-gray-600 mb-1">Total Sales</p>
-                <p className="text-2xl font-bold text-green-600">₹{totalSales.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-green-600">৳{totalSales.toLocaleString()}</p>
               </div>
               <div className="bg-white rounded-lg shadow p-6">
                 <p className="text-sm text-gray-600 mb-1">Total Purchases</p>
-                <p className="text-2xl font-bold text-red-600">₹{totalPurchases.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-red-600">৳{totalPurchases.toLocaleString()}</p>
               </div>
               <div className="bg-white rounded-lg shadow p-6">
                 <p className="text-sm text-gray-600 mb-1">Total Salaries</p>
-                <p className="text-2xl font-bold text-orange-600">₹{totalSalaries.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-orange-600">৳{totalSalaries.toLocaleString()}</p>
               </div>
               <div className="bg-white rounded-lg shadow p-6">
                 <p className="text-sm text-gray-600 mb-1">Net Profit</p>
                 <p className={`text-2xl font-bold ${totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  ₹{totalProfit.toLocaleString()}
+                  ৳{totalProfit.toLocaleString()}
                 </p>
               </div>
             </div>
@@ -328,20 +322,20 @@ export default function ReportsPage() {
               <div className="space-y-4">
                 <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
                   <span className="text-gray-700 font-medium">Total Revenue (Sales)</span>
-                  <span className="text-green-600 font-bold text-lg">+₹{totalSales.toLocaleString()}</span>
+                  <span className="text-green-600 font-bold text-lg">+৳{totalSales.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between items-center p-4 bg-red-50 rounded-lg">
                   <span className="text-gray-700 font-medium">Total Expenses (Purchases)</span>
-                  <span className="text-red-600 font-bold text-lg">-₹{totalPurchases.toLocaleString()}</span>
+                  <span className="text-red-600 font-bold text-lg">-৳{totalPurchases.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between items-center p-4 bg-orange-50 rounded-lg">
                   <span className="text-gray-700 font-medium">Total Salaries</span>
-                  <span className="text-orange-600 font-bold text-lg">-₹{totalSalaries.toLocaleString()}</span>
+                  <span className="text-orange-600 font-bold text-lg">-৳{totalSalaries.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between items-center p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
                   <span className="text-gray-900 font-bold text-lg">Net Profit</span>
                   <span className={`font-bold text-xl ${totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    ₹{totalProfit.toLocaleString()}
+                    ৳{totalProfit.toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -349,6 +343,5 @@ export default function ReportsPage() {
           </div>
         )}
       </div>
-    </MainLayout>
   );
 }

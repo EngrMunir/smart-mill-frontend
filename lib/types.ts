@@ -85,11 +85,25 @@ export interface Sale {
   customRiceType?: string;
   branType?: BranType; // if type is bran
   customerName: string;
-  quantityKg: number;
-  quantityBosta: number;
-  bostaSize: BostaSize;
-  ratePerKg: number;
-  totalAmount: number;
+  // Selling by BOSTA only (not by KG)
+  bosta25: number; // Number of 25kg bags
+  bosta50: number; // Number of 50kg bags
+  
+  // For RICE: Price per BOSTA (not per KG)
+  ratePerBosta25?: number; // Price per 25kg bag (for rice only)
+  ratePerBosta50?: number; // Price per 50kg bag (for rice only)
+  
+  // For BRAN: Price per KG
+  ratePerKg25?: number; // Price per KG for 25kg bags (for bran only)
+  ratePerKg50?: number; // Price per KG for 50kg bags (for bran only)
+  
+  // Auto calculated fields
+  totalKg25: number; // Auto calculated: bosta25 * 25
+  totalKg50: number; // Auto calculated: bosta50 * 50
+  totalKg: number; // Auto calculated: totalKg25 + totalKg50
+  amount25: number; // Auto calculated
+  amount50: number; // Auto calculated
+  totalAmount: number; // Auto calculated: amount25 + amount50
   saleType: 'cash' | 'due';
   paidAmount: number;
   dueAmount: number;
