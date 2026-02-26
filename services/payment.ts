@@ -1,11 +1,12 @@
-// Payments API
-export const paymentsAPI = {
-  payFarmerDue: async (farmerId: number, amount: number): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/payments/farmers/${farmerId}/pay`, {
+import { cookies } from "next/headers";
+
+export const payFarmerDue = async (farmerId: number, amount: number): Promise<void> => {
+    const accessToken = (await cookies()).get("accessToken")!.value;
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/payments/farmers/${farmerId}/pay`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+        'Authorization': `Bearer ${accessToken}`,
       },
       body: JSON.stringify({ amount }),
     });
@@ -13,14 +14,15 @@ export const paymentsAPI = {
     if (!response.ok) {
       throw new Error('Failed to pay farmer due');
     }
-  },
+  };
 
-  payCustomerDue: async (customerId: number, amount: number): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/payments/customers/${customerId}/pay`, {
+  export const payCustomerDue = async (customerId: number, amount: number): Promise<void> => {
+    const accessToken = (await cookies()).get("accessToken")!.value;
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/payments/customers/${customerId}/pay`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+        'Authorization': `Bearer ${accessToken}`,
       },
       body: JSON.stringify({ amount }),
     });
@@ -28,14 +30,15 @@ export const paymentsAPI = {
     if (!response.ok) {
       throw new Error('Failed to pay customer due');
     }
-  },
+  };
 
-  payPaddyPurchase: async (purchaseId: number, amount: number): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/payments/paddy-purchases/${purchaseId}/pay`, {
+  export const payPaddyPurchase = async (purchaseId: number, amount: number): Promise<void> => {
+    const accessToken = (await cookies()).get("accessToken")!.value;
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/payments/paddy-purchases/${purchaseId}/pay`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+        'Authorization': `Bearer ${accessToken}`,
       },
       body: JSON.stringify({ amount }),
     });
@@ -43,14 +46,15 @@ export const paymentsAPI = {
     if (!response.ok) {
       throw new Error('Failed to pay paddy purchase');
     }
-  },
+  };
 
-  paySale: async (saleId: number, amount: number): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/payments/sales/${saleId}/pay`, {
+  export const paySale = async (saleId: number, amount: number): Promise<void> => {
+    const accessToken = (await cookies()).get("accessToken")!.value;
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/payments/sales/${saleId}/pay`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+        'Authorization': `Bearer ${accessToken}`,
       },
       body: JSON.stringify({ amount }),
     });
@@ -58,5 +62,4 @@ export const paymentsAPI = {
     if (!response.ok) {
       throw new Error('Failed to pay sale');
     }
-  },
-};
+  };
