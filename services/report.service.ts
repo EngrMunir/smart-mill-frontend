@@ -1,14 +1,15 @@
+import { cookies } from "next/headers";
 
-// Reports API
-export const reportsAPI = {
-  getSalesReport: async (params: {
+const accessToken = (await cookies()).get("accessToken")!.value;
+
+export const getSalesReport = async (params: {
     startDate: string;
     endDate: string;
-  }): Promise<any> => {
+  }) => {
     const queryParams = new URLSearchParams(params);
-    const response = await fetch(`${API_BASE_URL}/reports/sales?${queryParams}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/reports/sales?${queryParams}`, {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+        'Authorization': `Bearer ${accessToken}`,
       },
     });
 
@@ -16,18 +17,18 @@ export const reportsAPI = {
       throw new Error('Failed to fetch sales report');
     }
 
-    const result: ApiResponse<any> = await response.json();
+    const result = await response.json();
     return result.data;
-  },
+  };
 
-  getPurchaseReport: async (params: {
+  export const getPurchaseReport = async (params: {
     startDate: string;
     endDate: string;
-  }): Promise<any> => {
+  }) => {
     const queryParams = new URLSearchParams(params);
-    const response = await fetch(`${API_BASE_URL}/reports/purchases?${queryParams}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/reports/purchases?${queryParams}`, {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+        'Authorization': `Bearer ${accessToken}`,
       },
     });
 
@@ -35,18 +36,18 @@ export const reportsAPI = {
       throw new Error('Failed to fetch purchase report');
     }
 
-    const result: ApiResponse<any> = await response.json();
+    const result = await response.json();
     return result.data;
-  },
+  };
 
-  getProductionReport: async (params: {
+  export const getProductionReport = async (params: {
     startDate: string;
     endDate: string;
-  }): Promise<any> => {
+  }) => {
     const queryParams = new URLSearchParams(params);
-    const response = await fetch(`${API_BASE_URL}/reports/production?${queryParams}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/reports/production?${queryParams}`, {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+        'Authorization': `Bearer ${accessToken}`,
       },
     });
 
@@ -54,18 +55,18 @@ export const reportsAPI = {
       throw new Error('Failed to fetch production report');
     }
 
-    const result: ApiResponse<any> = await response.json();
+    const result = await response.json();
     return result.data;
-  },
+  };
 
-  getExpenseReport: async (params: {
+  export const getExpenseReport = async (params: {
     startDate: string;
     endDate: string;
-  }): Promise<any> => {
+  }) => {
     const queryParams = new URLSearchParams(params);
-    const response = await fetch(`${API_BASE_URL}/reports/expenses?${queryParams}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/reports/expenses?${queryParams}`, {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+        'Authorization': `Bearer ${accessToken}`,
       },
     });
 
@@ -73,7 +74,6 @@ export const reportsAPI = {
       throw new Error('Failed to fetch expense report');
     }
 
-    const result: ApiResponse<any> = await response.json();
+    const result = await response.json();
     return result.data;
-  },
-};
+  };
