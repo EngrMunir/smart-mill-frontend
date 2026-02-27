@@ -1,8 +1,6 @@
 import { ExternalPurchase, PaddyPurchase } from "@/types";
 import { cookies } from "next/headers";
 
-const accessToken = (await cookies()).get("accessToken")!.value;
-
   export const createPurchase = async (data: {
     productType: 'RICE' | 'BRAN';
     riceTypeId?: number;
@@ -14,7 +12,8 @@ const accessToken = (await cookies()).get("accessToken")!.value;
     pricePerBosta: number;
     notes?: string;
   }): Promise<ExternalPurchase> => {
-    
+    const accessToken = (await cookies()).get("accessToken")!.value;
+
     const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/external-purchases`, {
       method: 'POST',
       headers: {
@@ -29,6 +28,8 @@ const accessToken = (await cookies()).get("accessToken")!.value;
   };
 
   export const getAllPurchase = async (): Promise<ExternalPurchase[]> => {
+    const accessToken = (await cookies()).get("accessToken")!.value;
+
     const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/external-purchases`, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -44,6 +45,8 @@ const accessToken = (await cookies()).get("accessToken")!.value;
   };
 
   export const getPurchaseById = async (id: number): Promise<ExternalPurchase> => {
+    const accessToken = (await cookies()).get("accessToken")!.value;
+
     const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/external-purchases/${id}`, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -69,6 +72,8 @@ const accessToken = (await cookies()).get("accessToken")!.value;
     paidAmount?: number;
     notes?: string;
   }): Promise<PaddyPurchase> => {
+    const accessToken = (await cookies()).get("accessToken")!.value;
+
     const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/paddy/purchases`, {
       method: 'POST',
       headers: {
@@ -86,6 +91,8 @@ const accessToken = (await cookies()).get("accessToken")!.value;
   };
 
   export const getAllPaddyPurchases = async (): Promise<PaddyPurchase[]> => {
+    const accessToken = (await cookies()).get("accessToken")!.value;
+
     const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/paddy/purchases`, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -102,6 +109,8 @@ const accessToken = (await cookies()).get("accessToken")!.value;
   };
 
   export const getPaddyPurchaseById = async (id: number): Promise<PaddyPurchase> => {
+    const accessToken = (await cookies()).get("accessToken")!.value;
+
     const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/paddy/purchases/${id}`, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,

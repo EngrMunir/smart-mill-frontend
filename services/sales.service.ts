@@ -1,6 +1,8 @@
-// Sales API
-export const salesAPI = {
-  create: async (data: {
+"use server"
+import { Sale } from "@/types";
+import { cookies } from "next/headers";
+
+export const createSale = async (data: {
     customerId: number;
     saleDate: string;
     items: Array<{
@@ -14,11 +16,13 @@ export const salesAPI = {
     invoiceNumber: string;
     notes?: string;
   }): Promise<Sale> => {
-    const response = await fetch(`${API_BASE_URL}/sales`, {
+    const accessToken = (await cookies()).get("accessToken")!.value;
+
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/sales`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+        'Authorization': `Bearer ${accessToken}`,
       },
       body: JSON.stringify(data),
     });
@@ -27,14 +31,16 @@ export const salesAPI = {
       throw new Error('Failed to create sale');
     }
 
-    const result: ApiResponse<Sale> = await response.json();
+    const result = await response.json();
     return result.data;
-  },
+  };
 
-  getAll: async (): Promise<Sale[]> => {
-    const response = await fetch(`${API_BASE_URL}/sales`, {
+  export const getAllSales = async (): Promise<Sale[]> => {
+    const accessToken = (await cookies()).get("accessToken")!.value;
+
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/sales`, {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+        'Authorization': `Bearer ${accessToken}`,
       },
     });
 
@@ -42,12 +48,12 @@ export const salesAPI = {
       throw new Error('Failed to fetch sales');
     }
 
-    const result: ApiResponse<Sale[]> = await response.json();
+    const result = await response.json();
     return result.data;
-  },
+  };
 
-  getById: async (id: number): Promise<Sale> => {
-    const response = await fetch(`${API_BASE_URL}/sales/${id}`, {
+  export const getSaleById = async (id: number): Promise<Sale> => {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/sales/${id}`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
       },
@@ -57,7 +63,6 @@ export const salesAPI = {
       throw new Error('Failed to fetch sale');
     }
 
-    const result: ApiResponse<Sale> = await response.json();
+    const result = await response.json();
     return result.data;
-  },
-};
+  };

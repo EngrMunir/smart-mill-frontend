@@ -1,11 +1,11 @@
 import { cookies } from "next/headers";
 
-const accessToken = (await cookies()).get("accessToken")!.value;
-
 export const getSalesReport = async (params: {
     startDate: string;
     endDate: string;
   }) => {
+    const accessToken = (await cookies()).get("accessToken")!.value;
+
     const queryParams = new URLSearchParams(params);
     const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/reports/sales?${queryParams}`, {
       headers: {
@@ -25,6 +25,8 @@ export const getSalesReport = async (params: {
     startDate: string;
     endDate: string;
   }) => {
+    const accessToken = (await cookies()).get("accessToken")!.value;
+
     const queryParams = new URLSearchParams(params);
     const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/reports/purchases?${queryParams}`, {
       headers: {
@@ -44,6 +46,8 @@ export const getSalesReport = async (params: {
     startDate: string;
     endDate: string;
   }) => {
+    const accessToken = (await cookies()).get("accessToken")!.value;
+
     const queryParams = new URLSearchParams(params);
     const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/reports/production?${queryParams}`, {
       headers: {
@@ -63,6 +67,8 @@ export const getSalesReport = async (params: {
     startDate: string;
     endDate: string;
   }) => {
+    const accessToken = (await cookies()).get("accessToken")!.value;
+
     const queryParams = new URLSearchParams(params);
     const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/reports/expenses?${queryParams}`, {
       headers: {

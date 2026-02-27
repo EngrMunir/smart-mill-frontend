@@ -1,16 +1,20 @@
-  // Salary Payments
-  createSalaryPayment: async (employeeId: number, data: {
+import { SalaryPayment } from "@/types";
+import { cookies } from "next/headers";
+
+export const createSalaryPayment = async (employeeId: number, data: {
     paymentDate: string;
     month: string;
     year: number;
     amount: number;
     notes?: string;
   }): Promise<SalaryPayment> => {
-    const response = await fetch(`${API_BASE_URL}/employees/${employeeId}/salary-payments`, {
+    const accessToken = (await cookies()).get("accessToken")!.value;
+
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/employees/${employeeId}/salary-payments`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+        'Authorization': `Bearer ${accessToken}`,
       },
       body: JSON.stringify(data),
     });
@@ -19,14 +23,16 @@
       throw new Error('Failed to create salary payment');
     }
 
-    const result: ApiResponse<SalaryPayment> = await response.json();
+    const result = await response.json();
     return result.data;
-  },
+  };
 
-  getSalaryPayments: async (employeeId: number): Promise<SalaryPayment[]> => {
-    const response = await fetch(`${API_BASE_URL}/employees/${employeeId}/salary-payments`, {
+  export const getSalaryPayments = async (employeeId: number) => {
+    const accessToken = (await cookies()).get("accessToken")!.value;
+
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/employees/${employeeId}/salary-payments`, {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+        'Authorization': `Bearer ${accessToken}`,
       },
     });
 
@@ -34,6 +40,6 @@
       throw new Error('Failed to fetch salary payments');
     }
 
-    const result: ApiResponse<SalaryPayment[]> = await response.json();
+    const result = await response.json();
     return result.data;
-  },
+  };
