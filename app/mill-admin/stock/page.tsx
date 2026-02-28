@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { stockAPI, StockSummary } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Warehouse, Package, TrendingUp } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+import { StockSummary } from '@/types';
+import { getAllStock } from '@/services/stock.service';
 
 export default function StockPage() {
   const [stockData, setStockData] = useState<StockSummary | null>(null);
@@ -20,7 +21,7 @@ export default function StockPage() {
     try {
       setLoading(true);
       setError(null);
-      const data = await stockAPI.getAllStock();
+      const data = await getAllStock();
       setStockData(data);
     } catch (err: any) {
       setError(err.message || 'Failed to load stock data');
@@ -161,4 +162,3 @@ export default function StockPage() {
     </div>
   );
 }
-

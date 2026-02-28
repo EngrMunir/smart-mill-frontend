@@ -1,11 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { dashboardAPI, stockAPI } from '@/lib/api';
-import { Package, TrendingUp, DollarSign, CreditCard, Warehouse, Loader2 } from 'lucide-react';
+import { Package, TrendingUp, DollarSign, CreditCard, Loader2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { calculateTotalKg } from '@/lib/stockUtils';
 import { MILL_INFO } from '@/lib/constants';
+import { getAllStock } from '@/services/stock.service';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
 
@@ -17,21 +16,11 @@ export default function MillAdminDashboard() {
 
   useEffect(() => {
     const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const [dashboardSummary, stockSummary] = await Promise.all([
-          dashboardAPI.getSummary(),
-          stockAPI.getAllStock()
-        ]);
-        setDashboardData(dashboardSummary);
-        setStockData(stockSummary);
-      } catch (err: any) {
-        setError(err.message || 'Failed to load dashboard data');
-        console.error('Dashboard data fetch error:', err);
-      } finally {
-        setLoading(false);
-      }
+        
+        const stock = await getAllStock();
+        setDashboardData(stock);
+        setStockData(stock);
+        setLoading(false)
     };
 
     fetchDashboardData();

@@ -1,3 +1,5 @@
+'use server'
+
 import { ExternalPurchase, PaddyPurchase } from "@/types";
 import { cookies } from "next/headers";
 

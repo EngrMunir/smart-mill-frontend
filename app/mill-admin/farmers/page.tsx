@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { farmersAPI, paddyAPI, stockAPI } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,8 +24,11 @@ import {
 } from '@/components/ui/dialog';
 import { Plus, Edit, Trash2, Loader2 } from 'lucide-react';
 import { BostaWeightInput } from '@/components/BostaWeightInput';
-import { calculateTotalKg } from '@/lib/stockUtils';
 import { useToast } from '@/components/ui/toast-simple';
+import { getAllFarmer } from '@/services/farmer.service';
+import { getAllPaddyPurchases } from '@/services/purchase';
+import { getAllPaddyTypes } from '@/services/paddy.service';
+import { getPaddyStock } from '@/services/stock.service';
 
 export default function FarmersPage() {
   const [farmers, setFarmers] = useState<any[]>([]);
@@ -64,23 +66,15 @@ export default function FarmersPage() {
       setLoading(true);
       setError(null);
       const [farmersData, purchasesData, paddyTypesData] = await Promise.all([
-        farmersAPI.getAll(),
-        paddyAPI.getAllPaddyPurchases(),
-        paddyAPI.getAllPaddyTypes()
+        getAllFarmer(),
+        getAllPaddyPurchases(),
+        getAllPaddyTypes()
       ]);
-      
-      console.log('Raw Farmers data:', farmersData);
-      console.log('Raw Purchases data:', purchasesData);
-      console.log('Raw Paddy Types data:', paddyTypesData);
       
       // Ensure arrays are always arrays
       const farmersList = Array.isArray(farmersData) ? farmersData : [];
       const purchasesList = Array.isArray(purchasesData) ? purchasesData : [];
       const paddyTypesList = Array.isArray(paddyTypesData) ? paddyTypesData : [];
-      
-      console.log('Processed Farmers list:', farmersList, 'Length:', farmersList.length);
-      console.log('Processed Purchases list:', purchasesList, 'Length:', purchasesList.length);
-      console.log('Processed Paddy Types list:', paddyTypesList, 'Length:', paddyTypesList.length);
       
       setFarmers(farmersList);
       setPaddyPurchases(purchasesList);
@@ -91,11 +85,10 @@ export default function FarmersPage() {
       
       try {
         // Call /stock/paddy API directly (without paddyTypeId to get all stock)
-        const allPaddyStock = await stockAPI.getPaddyStock();
+        const allPaddyStock = await getPaddyStock();
         
         // Handle the response format: { paddyTypes: [...] }
         if (allPaddyStock && allPaddyStock.paddyTypes && Array.isArray(allPaddyStock.paddyTypes)) {
-          console.log('Processing paddyTypes array from response...');
           for (const stockItem of allPaddyStock.paddyTypes) {
             const paddyTypeName = stockItem.paddyTypeName;
             const totalBostas = stockItem.totalBostas || 0;
@@ -119,20 +112,12 @@ export default function FarmersPage() {
           console.log('Unexpected response format:', allPaddyStock);
         }
       } catch (err: any) {
-        console.error('Failed to fetch paddy stock from /stock/paddy:', err);
-        console.error('Error details:', err.message, err.stack);
+       
       }
-      
-      console.log('\n=== Final typeWisePaddy object ===');
-      console.log(JSON.stringify(typeWisePaddy, null, 2));
-      console.log('Object keys:', Object.keys(typeWisePaddy));
-      console.log('Number of types with stock:', Object.keys(typeWisePaddy).length);
       
       setCurrentStock({ paddy: typeWisePaddy });
     } catch (err: any) {
-      console.error('Failed to load data:', err);
       setError(err.message || 'Failed to load data');
-      // Set empty arrays on error to prevent undefined errors
       setFarmers([]);
       setPaddyPurchases([]);
       setPaddyTypes([]);

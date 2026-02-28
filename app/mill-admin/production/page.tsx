@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { productionAPI, stockAPI, paddyAPI } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,6 +26,9 @@ import { QuantityInput } from '@/components/QuantityInput';
 import { calculateTotalKg, BostaSize } from '@/lib/stockUtils';
 import { DEFAULT_BOSTA_SIZE } from '@/lib/constants';
 import { useToast } from '@/components/ui/toast-simple';
+import { createBatch, getAllBatches } from '@/services/production.service';
+import { getAllStock, getBranStock, getPaddyStock, getRiceStock } from '@/services/stock.service';
+import { getAllBranTypes, getAllPaddyTypes, getAllRiceTypes } from '@/services/paddy.service';
 
 export default function ProductionPage() {
   const [showForm, setShowForm] = useState(false);
@@ -80,12 +82,12 @@ export default function ProductionPage() {
     try {
       setLoading(true);
       setError(null);
-      const [batchesData, stockData, paddyTypesData, riceTypesData, branTypesData] = await Promise.all([
-        productionAPI.getAllBatches(),
-        stockAPI.getAllStock(),
-        paddyAPI.getAllPaddyTypes(),
-        paddyAPI.getAllRiceTypes(),
-        paddyAPI.getAllBranTypes(),
+      const [batchesData, paddyTypesData, riceTypesData, branTypesData] = await Promise.all([
+        getAllBatches(),
+        getAllStock(),
+        getAllPaddyTypes(),
+        getAllRiceTypes(),
+        getAllBranTypes(),
       ]);
 
 
@@ -94,15 +96,12 @@ export default function ProductionPage() {
       const riceTypesList = Array.isArray(riceTypesData) ? riceTypesData : [];
       const branTypesList = Array.isArray(branTypesData) ? branTypesData : [];
 
-      // Process stock data - handle different response formats
       let processedStock: any = { paddy: {}, rice: {}, bran: {} };
       
-      // Fetch paddy stock using /stock/paddy API (same approach as farmers page)
         const typeWisePaddy: any = {};
       
       try {
-        // Call /stock/paddy API directly (without paddyTypeId to get all stock)
-        const allPaddyStock = await stockAPI.getPaddyStock();
+        const allPaddyStock = await getPaddyStock();
 
         // Handle the response format: { paddyTypes: [...] }
         if (allPaddyStock && allPaddyStock.paddyTypes && Array.isArray(allPaddyStock.paddyTypes)) {
@@ -126,19 +125,10 @@ export default function ProductionPage() {
       } catch (err: any) {
         }
 
-      // Fetch rice stock - only using /stock/rice without parameter
       const typeWiseRice: any = {};
       
       try {
-        console.log('=== Calling /stock/rice API (WITHOUT riceTypeId parameter) ===');
-        console.log('API URL: http://localhost:3000/stock/rice');
-        const allRiceStock = await stockAPI.getRiceStock();
-        console.log('=== Response from http://localhost:3000/stock/rice ===');
-        console.log('Response Type:', typeof allRiceStock);
-        console.log('Is Array?', Array.isArray(allRiceStock));
-        console.log('Response Keys:', allRiceStock ? Object.keys(allRiceStock) : 'null');
-        console.log('Full Response (JSON):', JSON.stringify(allRiceStock, null, 2));
-        console.log('Full Response (Object):', allRiceStock);
+        const allRiceStock = await getRiceStock();
         
         // Handle different response formats
         if (allRiceStock && allRiceStock.riceTypes && Array.isArray(allRiceStock.riceTypes)) {
@@ -162,8 +152,6 @@ export default function ProductionPage() {
             }
           }
         } else if (Array.isArray(allRiceStock)) {
-          // Format: [ {...}, {...} ]
-          console.log('Response is an array with', allRiceStock.length, 'items');
           for (const stockItem of allRiceStock) {
             const riceTypeName = stockItem.riceTypeName || stockItem.name || stockItem.riceType?.name;
             const totalBostas = stockItem.currentBostaStock || stockItem.totalBostas || 0;
@@ -182,9 +170,7 @@ export default function ProductionPage() {
             }
           }
         } else if (allRiceStock && typeof allRiceStock === 'object') {
-          // Format: { type1: {...}, type2: {...} } or single object
-          console.log('Response is an object, processing...');
-          // Try to match with rice types list
+          
           for (const riceType of riceTypesList) {
             const stockData = allRiceStock[riceType.name] || allRiceStock[riceType.id];
             if (stockData) {
@@ -212,7 +198,7 @@ export default function ProductionPage() {
       const typeWiseBran: any = {};
         for (const branType of branTypesList) {
           try {
-            const branStock = await stockAPI.getBranStock(branType.id);
+            const branStock = await getBranStock(branType.id);
           if (branStock) {
             // Handle different field names
             const totalKg = branStock.totalKg || branStock.total_kg || branStock.totalWeight || branStock.total_weight || 0;
@@ -323,7 +309,7 @@ export default function ProductionPage() {
     }
 
     try {
-      await productionAPI.createBatch({
+      await createBatch({
         paddyTypeId: parseInt(formData.paddyTypeId),
         productionDate: formData.productionDate,
         totalWeight: paddyTotalKg,

@@ -1,3 +1,5 @@
+'use server'
+
 import { ProductionBatch } from "@/types";
 import { cookies } from "next/headers";
 

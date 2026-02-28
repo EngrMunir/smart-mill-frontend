@@ -1,3 +1,4 @@
+'use server'
 import { cookies } from "next/headers";
 
 export const payFarmerDue = async (farmerId: number, amount: number): Promise<void> => {

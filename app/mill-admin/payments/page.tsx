@@ -20,11 +20,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { farmersAPI, customersAPI, salesAPI, paddyAPI, paymentsAPI } from '@/lib/api';
 import { CreditCard, Loader2, Users, DollarSign, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/components/ui/toast-simple';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { getAllFarmer } from '@/services/farmer.service';
+import { getAllCustomer } from '@/services/customer.service';
+import { getAllPaddyPurchases } from '@/services/purchase';
+import { getAllSales } from '@/services/sales.service';
+import { payCustomerDue, payFarmerDue, payPaddyPurchase, paySale } from '@/services/payment';
 
 type PaymentType = 'farmer' | 'customer' | 'paddy-purchase' | 'sale';
 
@@ -50,10 +54,10 @@ export default function PaymentsPage() {
       setLoading(true);
       setError(null);
       const [farmersData, customersData, purchasesData, salesData] = await Promise.all([
-        farmersAPI.getAll(),
-        customersAPI.getAll(),
-        paddyAPI.getAllPaddyPurchases(),
-        salesAPI.getAll(),
+        getAllFarmer(),
+        getAllCustomer(),
+        getAllPaddyPurchases(),
+        getAllSales(),
       ]);
       setFarmers(farmersData || []);
       setCustomers(customersData || []);
@@ -90,16 +94,16 @@ export default function PaymentsPage() {
       setError(null);
       switch (selectedItem.paymentType) {
         case 'farmer':
-          await paymentsAPI.payFarmerDue(selectedItem.id, amount);
+          await payFarmerDue(selectedItem.id, amount);
           break;
         case 'customer':
-          await paymentsAPI.payCustomerDue(selectedItem.id, amount);
+          await payCustomerDue(selectedItem.id, amount);
           break;
         case 'paddy-purchase':
-          await paymentsAPI.payPaddyPurchase(selectedItem.id, amount);
+          await payPaddyPurchase(selectedItem.id, amount);
           break;
         case 'sale':
-          await paymentsAPI.paySale(selectedItem.id, amount);
+          await paySale(selectedItem.id, amount);
           break;
       }
 

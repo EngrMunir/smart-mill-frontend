@@ -1,6 +1,5 @@
 'use client';
 
-import { updateRiceStock, updateBranStock, getStock } from '@/lib/sampleData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,9 +24,11 @@ import {
 import { Plus, Trash2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { QuantityInput } from '@/components/QuantityInput';
-import { calculateTotalKg, normalizeStock, BostaSize } from '@/lib/stockUtils';
+import { calculateTotalKg, BostaSize } from '@/lib/stockUtils';
 import { RICE_TYPES, BRAN_TYPES, DEFAULT_BOSTA_SIZE, RiceType, BranType } from '@/lib/constants';
-import { stockAPI, paddyAPI, externalPurchaseAPI } from '@/lib/api';
+import { getAllStock, getBranStock, getRiceStock } from '@/services/stock.service';
+import { getAllBranTypes, getAllRiceTypes } from '@/services/paddy.service';
+import { createPurchase, getAllPurchase } from '@/services/purchase';
 
 export default function ExternalPurchasePage() {
   const [showForm, setShowForm] = useState(false);
@@ -74,7 +75,6 @@ export default function ExternalPurchasePage() {
     paidAmount: '',
     notes: '',
   });
-  const currentStock = getStock();
 
   useEffect(() => {
     fetchRiceStock();
@@ -86,7 +86,7 @@ export default function ExternalPurchasePage() {
     try {
       setLoading(true);
       // Fetch all rice types first
-      const riceTypesData = await paddyAPI.getAllRiceTypes();
+      const riceTypesData = await getAllRiceTypes();
       console.log('Rice Types from API:', riceTypesData);
       const typesList = Array.isArray(riceTypesData) ? riceTypesData : [];
       setRiceTypes(typesList);
@@ -99,17 +99,14 @@ export default function ExternalPurchasePage() {
       for (const riceType of riceTypesData) {
         try {
           console.log(`Fetching stock for rice type: ${riceType.name} (ID: ${riceType.id})`);
-          const stock = await stockAPI.getRiceStock(riceType.id);
-          console.log(`Stock response for ${riceType.name}:`, stock);
+          const stock = await getRiceStock(riceType.id);
           
-          // Handle different response formats
           let totalKg = 0;
           let totalBosta = 0;
           let totalWeight = 0;
           let bostaSize = 50;
           
           if (stock) {
-            // Try different field names
             totalKg = stock.totalKg || stock.total_kg || stock.totalWeight || stock.total_weight || 0;
             totalBosta = stock.totalBosta || stock.total_bosta || stock.bosta || stock.totalBostas || 0;
             totalWeight = stock.totalWeight || stock.total_weight || totalKg || 0;
@@ -120,9 +117,7 @@ export default function ExternalPurchasePage() {
               totalKg = totalWeight;
             }
           }
-          
-          console.log(`Parsed stock for ${riceType.name}:`, { totalKg, totalBosta, bostaSize });
-          
+                    
           // Store stock even if it's 0, so we can show all types
           typeWiseRice[riceType.name] = {
             kg: totalKg,
@@ -139,9 +134,7 @@ export default function ExternalPurchasePage() {
           };
         }
       }
-      
-      console.log('Final rice stock:', typeWiseRice);
-      setRiceStock(typeWiseRice);
+            setRiceStock(typeWiseRice);
     } catch (err: any) {
       console.error('Failed to fetch rice stock:', err);
     } finally {
@@ -152,22 +145,15 @@ export default function ExternalPurchasePage() {
   const fetchBranStock = async () => {
     try {
       // Fetch all bran types first
-      const branTypesData = await paddyAPI.getAllBranTypes();
-      console.log('Bran Types from API:', branTypesData);
+      const branTypesData = await getAllBranTypes();
       const typesList = Array.isArray(branTypesData) ? branTypesData : [];
       setBranTypes(typesList);
-      console.log('Bran Types set to state:', typesList);
       
-      // Fetch bran stock for each type
       const typeWiseBran: any = {};
       
-      // First try to get all bran stock at once (without branTypeId)
-      const allBranStock = await stockAPI.getBranStock();
-      console.log('/stock/bran API Response:', allBranStock);
+      const allBranStock = await getBranStock();
       
-      // Handle the response format similar to paddy stock
       if (allBranStock && allBranStock.branTypes && Array.isArray(allBranStock.branTypes)) {
-        // Response format: { branTypes: [...] }
         for (const stockItem of allBranStock.branTypes) {
           const branTypeName = stockItem.branTypeName;
           const totalBostas = stockItem.totalBostas || 0;
@@ -183,7 +169,6 @@ export default function ExternalPurchasePage() {
           }
         }
       } else if (Array.isArray(allBranStock)) {
-        // Response is an array
         for (const stockItem of allBranStock) {
           const branType = branTypesData.find((bt: any) => 
             bt.id === stockItem.branTypeId || 
@@ -232,7 +217,7 @@ export default function ExternalPurchasePage() {
       if (Object.keys(typeWiseBran).length === 0 && branTypesData.length > 0) {
         for (const branType of branTypesData) {
           try {
-            const stock = await stockAPI.getBranStock(branType.id);
+            const stock = await getBranStock(branType.id);
             const totalKg = stock?.totalKg || stock?.total_kg || stock?.totalWeight || stock?.total_weight || 0;
             const totalBosta = stock?.totalBosta || stock?.total_bosta || stock?.bosta || stock?.totalBostas || 0;
             const bostaSize = stock?.bostaSize || stock?.bosta_size || 50;
@@ -252,9 +237,7 @@ export default function ExternalPurchasePage() {
           }
         }
       }
-      
-      console.log('Final bran stock:', typeWiseBran);
-      setBranStock(typeWiseBran);
+            setBranStock(typeWiseBran);
     } catch (err: any) {
       console.error('Failed to fetch bran stock:', err);
     }
@@ -263,9 +246,7 @@ export default function ExternalPurchasePage() {
   const fetchExternalPurchases = async () => {
     try {
       console.log('Fetching external purchases...');
-      const purchases = await externalPurchaseAPI.getAll();
-      console.log('Fetched external purchases:', purchases);
-      console.log('Number of purchases:', purchases?.length || 0);
+      const purchases = await getAllPurchase();
       setExternalPurchases(purchases || []);
     } catch (err: any) {
       console.error('Failed to fetch external purchases:', err);
@@ -329,13 +310,9 @@ export default function ExternalPurchasePage() {
           pricePerBosta: rate, // Rate per bosta (user enters this directly)
           notes: formData.notes.trim() || `External purchase - ${item.riceType}`,
         };
-
-        console.log('=== Sending Rice Purchase to Backend ===');
-        console.log('API Endpoint: POST /external-purchases');
-        console.log('Request Data:', JSON.stringify(purchaseData, null, 2));
-        
-        await externalPurchaseAPI.create(purchaseData);
-        console.log('✅ Rice purchase saved successfully');
+    
+        await createPurchase(purchaseData);
+      
       }
 
       // Process all bran items - send to backend
@@ -373,27 +350,17 @@ export default function ExternalPurchasePage() {
           notes: formData.notes.trim() || `External purchase - ${item.branType}`,
         };
 
-        console.log('=== Sending Bran Purchase to Backend ===');
-        console.log('API Endpoint: POST /external-purchases');
-        console.log('Request Data:', JSON.stringify(purchaseData, null, 2));
-        
-        await externalPurchaseAPI.create(purchaseData);
-        console.log('✅ Bran purchase saved successfully');
+        await createPurchase(purchaseData);
+
       }
 
       // Refresh purchase history after successful submission
       await fetchExternalPurchases();
 
-      const paidAmount = parseFloat(formData.paidAmount) || 0;
-      const dueAmount = totalAmount - paidAmount;
+      // const paidAmount = parseFloat(formData.paidAmount) || 0;
+      // const dueAmount = totalAmount - paidAmount;
 
-      console.log('=== Summary ===');
-      console.log('Total Items:', formData.riceItems.length + formData.branItems.length);
-      console.log('Total Kg:', totalKg);
-      console.log('Total Amount:', totalAmount);
-      console.log('Paid Amount:', paidAmount);
-      console.log('Due Amount:', dueAmount);
-
+      
       setShowForm(false);
       setFormData({
         riceItems: [{

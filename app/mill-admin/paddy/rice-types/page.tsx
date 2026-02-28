@@ -21,10 +21,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { paddyAPI, RiceTypeResponse } from '@/lib/api';
 import { Plus, Edit, Trash2, Loader2, Search, Package } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/components/ui/toast-simple';
+import { RiceTypeResponse } from '@/types';
+import { getAllRiceTypes } from '@/services/paddy.service';
 
 export default function RiceTypesPage() {
   const { toast } = useToast();
@@ -66,10 +67,9 @@ export default function RiceTypesPage() {
     try {
       setLoading(true);
       setError(null);
-      const data = await paddyAPI.getAllRiceTypes();
-      const typesList = Array.isArray(data) ? data : [];
-      setTypes(typesList);
-      setFilteredTypes(typesList);
+      const data = await getAllRiceTypes();
+      setTypes(data);
+      setFilteredTypes(data);
     } catch (err: any) {
       setError(err.message || 'Failed to load rice types');
       toast({

@@ -21,10 +21,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { paddyAPI, BranTypeResponse } from '@/lib/api';
 import { Plus, Edit, Trash2, Loader2, Search, Package } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/components/ui/toast-simple';
+import { BranTypeResponse } from '@/types';
+import { getAllBranTypes } from '@/services/paddy.service';
 
 export default function BranTypesPage() {
   const { toast } = useToast();
@@ -66,7 +67,7 @@ export default function BranTypesPage() {
     try {
       setLoading(true);
       setError(null);
-      const data = await paddyAPI.getAllBranTypes();
+      const data = await getAllBranTypes();
       const typesList = Array.isArray(data) ? data : [];
       setTypes(typesList);
       setFilteredTypes(typesList);

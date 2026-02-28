@@ -1,3 +1,4 @@
+'use server'
 import { BranTypeResponse, PaddyTypeResponse, RiceTypeResponse } from "@/types";
 import { cookies } from "next/headers";
 

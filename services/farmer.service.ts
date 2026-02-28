@@ -1,3 +1,4 @@
+'use server'
 import { Farmer } from "@/types";
 import { cookies } from "next/headers";
 
